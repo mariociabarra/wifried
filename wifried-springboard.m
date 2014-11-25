@@ -31,7 +31,8 @@
 #include "substrate.h"
 #include "WiFried.h"
 #include "SBCCButtonLikeSectionView.h"
-
+#include "SFAirDropDiscoveryController.h"
+#include "SBCCAirStuffSectionController.h"
 
 #define GET_IVAR(obj, prop) object_getIvar(obj, class_getInstanceVariable(object_getClass(obj), prop))
 
@@ -82,7 +83,7 @@ UIActionSheet* wifried_SF_discoverableModeActionSheet_(id self, SEL _cmd)
 
     actionSheet= [[UIActionSheet alloc] initWithTitle: SFLocalizedStringForKey(@"DISCOVERABLE_ACTION_SHEET_TITLE")
                     delegate: self  cancelButtonTitle: SFLocalizedStringForKey(@"CANCEL_BUTTON_TITLE")
-                    destructiveButtonTitle: nil otherButtonTitles: @"WiFried (D2DWiFi Off)", SFLocalizedStringForKey(@"OFF_BUTTON_TITLE"),
+                    destructiveButtonTitle: nil otherButtonTitles: @"WiFried (AWDL Off)", SFLocalizedStringForKey(@"OFF_BUTTON_TITLE"),
                      SFLocalizedStringForKey(@"CONTACTS_ONLY_BUTTON_TITLE"), SFLocalizedStringForKey(@"EVERYONE_BUTTON_TITLE"), nil];
 
     return actionSheet;
@@ -96,6 +97,7 @@ void wifried_SF_setDiscoverableMode_(id self, SEL _cmd, NSInteger mode)
     {
         // turn off completely WIFID2D_COMPLETELY_OFF_MODE
         NSLog(@"WiFried: Setting WiFiD2D Off Mode");
+        // This fixes UI bug
         original_SF_setDiscoverableMode_(self, _cmd, 0);
         saveMode(WIFID2D_COMPLETELY_OFF_MODE);
     }
@@ -106,11 +108,21 @@ void wifried_SF_setDiscoverableMode_(id self, SEL _cmd, NSInteger mode)
     }
 }
 
-void (*original_SFCC_updateAirDropControlAsEnabled_)(id self, SEL _cmd, BOOL enabled) = 0;
-// SBCCAirStuffSectionController _updateAirDropControlAsEnabled:
-void wifried_SFCC_updateAirDropControlAsEnabled_(id self, SEL _cmd, BOOL enabled)
+
+void (*original_SBCC_discoveryController_actionSheetWillDismiss_)(id self, SEL _cmd, id discovery, id sheet) = 0;
+// SBCCAirDropDiscoveryController discoveryController:actionSheetWillDismiss:
+void wifried_SBCC_discoveryController_actionSheetWillDismiss_(id self, SEL _cmd, id discovery, id sheet)
 {
-    original_SFCC_updateAirDropControlAsEnabled_(self, _cmd, enabled);
+    original_SBCC_discoveryController_actionSheetWillDismiss_(self, _cmd, discovery, sheet);
+    // update UI
+    [self _updateAirDropControlAsEnabled: [self airDropEnabled]];
+}
+
+void (*original_SBCC_updateAirDropControlAsEnabled_)(id self, SEL _cmd, BOOL enabled) = 0;
+// SBCCAirStuffSectionController _updateAirDropControlAsEnabled:
+void wifried_SBCC_updateAirDropControlAsEnabled_(id self, SEL _cmd, BOOL enabled)
+{
+    original_SBCC_updateAirDropControlAsEnabled_(self, _cmd, enabled);
     if (getMode() == WIFID2D_COMPLETELY_OFF_MODE)
     {
         NSLog(@"WiFried: Updating CC UI");
@@ -127,6 +139,9 @@ __attribute__((constructor)) static void initialize()
     hooked = true;
     MSHookMessageEx(NSClassFromString(@"SFAirDropDiscoveryController"), @selector(setDiscoverableMode:), (IMP)wifried_SF_setDiscoverableMode_, (IMP *)&original_SF_setDiscoverableMode_);
     MSHookMessageEx(NSClassFromString(@"SFAirDropDiscoveryController"), @selector(discoverableModeActionSheet), (IMP)wifried_SF_discoverableModeActionSheet_, (IMP *)&original_SF_discoverableModeActionSheet_);
-    MSHookMessageEx(NSClassFromString(@"SBCCAirStuffSectionController"), @selector(_updateAirDropControlAsEnabled:), (IMP)wifried_SFCC_updateAirDropControlAsEnabled_, (IMP *)&original_SFCC_updateAirDropControlAsEnabled_);
+    MSHookMessageEx(NSClassFromString(@"SBCCAirStuffSectionController"), @selector(_updateAirDropControlAsEnabled:), (IMP)wifried_SBCC_updateAirDropControlAsEnabled_, (IMP *)&original_SBCC_updateAirDropControlAsEnabled_);
+    MSHookMessageEx(NSClassFromString(@"SBCCAirStuffSectionController"), @selector(discoveryController:actionSheetWillDismiss:), (IMP)wifried_SBCC_discoveryController_actionSheetWillDismiss_, (IMP *)&original_SBCC_discoveryController_actionSheetWillDismiss_);
+
+
 
 }

@@ -1,7 +1,13 @@
 /* WiFried - Fix for iOS 8.1 WiFi fix
  * Runs inside discoveryd to compensate for WiFiD2DPlugin issue
- *
+ * 2 Modes
  *   - Completely disable WiFi_D2D plugin (prevents AWDL/AirDrop/Peer 2 Peer WiFi (ie, GameKit)
+ *   - 'Bouncer' mode, which bounces wifi 10 seconds after there are no more browse/resolve services
+ *
+ * Best fix for this issue would be a kernel patch on the shutdown of the AWDL interface
+ *   (which is either setting something on the WiFi driver or
+ *    some setting within the kernel.
+ *    Because resetting the WiFi firmware (via wifiFirmwareLoader) doesn't actually fix the issue, I believe it's the latter.
  *
  * Copyright (C) 2014 @mariociabarra
 */

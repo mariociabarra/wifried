@@ -1,2 +1,3 @@
 #!/bin/sh
-killall discoveryd
+killall -9 discoveryd discoveryd_helper &2>/dev/null
+launchctl start /Library/LaunchDaemons/com.apple.discoveryd_helper.plist &2>/dev/null

@@ -18,7 +18,7 @@ endif
 HOST := $(shell cat ~/.targethost)
 EXTRA_DEPLOY_SSH := $(shell cat ~/.wifried_extra)
 
-VERSION ?= 0.2
+VERSION ?= 0.3
 
 
 all: deploy
@@ -29,6 +29,11 @@ WIFRIED_DISCOVERYD_SRCS_M=wifried-discoveryd.m
 WIFRIED_DISCOVERYD_OBJS=$(WIFRIED_DISCOVERYD_SRCS_M:.m=.o)
 WIFRIED_DISCOVERYD_DEPENDS=$(WIFRIED_DISCOVERYD_SRCS_M:.m=.d)
 WIFRIED_DISCOVERYD_FRAMEWORKS=-framework Foundation -lsubstrate -framework Sharing -framework MobileWifi -framework DeviceToDeviceManager -framework SystemConfiguration
+
+WIFRIED_DISCOVERYD_HELPER_SRCS_M=wifried-discoveryd_helper.m
+WIFRIED_DISCOVERYD_HELPER_OBJS=$(WIFRIED_DISCOVERYD_HELPER_SRCS_M:.m=.o)
+WIFRIED_DISCOVERYD_HELPER_DEPENDS=$(WIFRIED_DISCOVERYD_HELPER_SRCS_M:.m=.d)
+WIFRIED_DISCOVERYD_HELPER_FRAMEWORKS=-framework Foundation -lsubstrate -framework SystemConfiguration
 
 WIFRIED_SB_SRCS_M=wifried-springboard.m
 WIFRIED_SB_OBJS=$(WIFRIED_SB_SRCS_M:.m=.o)
@@ -41,13 +46,15 @@ deploy: wifried_$(VERSION)_iphoneos-arm.deb
 	scp wifried_$(VERSION)_iphoneos-arm.deb root@$(HOST):/tmp/wifried_$(VERSION)_iphoneos-arm.deb
 	ssh root@$(HOST) "dpkg -i /tmp/wifried_$(VERSION)_iphoneos-arm.deb; $(EXTRA_DEPLOY_SSH)"
 
-wifried_$(VERSION)_iphoneos-arm.deb: packaging/control.sh packaging/postinst packaging/postrm WiFried-discoveryd.dylib WiFried-SB.dylib
+wifried_$(VERSION)_iphoneos-arm.deb: packaging/control.sh packaging/postinst packaging/postrm WiFried-discoveryd.dylib WiFried-discoveryd_helper.dylib WiFried-SB.dylib
 		$(eval TEMPDIR := $(shell mktemp -d -t WiFried.deb))
 		mkdir -p $(TEMPDIR)/DEBIAN
 		mkdir -p $(TEMPDIR)/Library/MobileSubstrate/DynamicLibraries
 		cp WiFried-discoveryd.dylib $(TEMPDIR)/Library/MobileSubstrate/DynamicLibraries/
-		cp WiFried-SB.dylib $(TEMPDIR)/Library/MobileSubstrate/DynamicLibraries/
 		cp WiFried-discoveryd.plist $(TEMPDIR)/Library/MobileSubstrate/DynamicLibraries/
+		cp WiFried-discoveryd_helper.dylib $(TEMPDIR)/Library/MobileSubstrate/DynamicLibraries/
+		cp WiFried-discoveryd_helper.plist $(TEMPDIR)/Library/MobileSubstrate/DynamicLibraries/
+		cp WiFried-SB.dylib $(TEMPDIR)/Library/MobileSubstrate/DynamicLibraries/
 		cp WiFried-SB.plist $(TEMPDIR)/Library/MobileSubstrate/DynamicLibraries/
 		packaging/control.sh $(VERSION) > $(TEMPDIR)/DEBIAN/control
 		cp packaging/postinst $(TEMPDIR)/DEBIAN/
@@ -61,6 +68,12 @@ WiFried-discoveryd.dylib:	$(WIFRIED_DISCOVERYD_OBJS)
 		ldid -S $@
 		#scp %@ root@$(HOST):/Library/MobileSubstrate/DynamicLibraries/
 
+WiFried-discoveryd_helper.dylib:	$(WIFRIED_DISCOVERYD_HELPER_OBJS)
+		$(CC) -dynamiclib $(LDFLAGS) $(WIFRIED_DISCOVERYD_HELPER_FRAMEWORKS) $(WIFRIED_DISCOVERYD_HELPER_OBJS) -o $@
+		ldid -S $@
+		#scp %@ root@$(HOST):/Library/MobileSubstrate/DynamicLibraries/
+
+
 WiFried-SB.dylib:	$(WIFRIED_SB_OBJS)
 		$(CC) -dynamiclib  $(LDFLAGS) $(WIFRIED_SB_FRAMEWORKS) $(WIFRIED_SB_OBJS) -o $@
 		ldid -S $@
@@ -69,10 +82,15 @@ WiFried-SB.dylib:	$(WIFRIED_SB_OBJS)
 clean:
 	rm -f $(WIFRIED_DISCOVERYD_OBJS)
 	rm -f $(WIFRIED_DISCOVERYD_DEPENDS)
+	rm -f $(WIFRIED_DISCOVERYD_HELPER_OBJS)
+	rm -f $(WIFRIED_DISCOVERYD_HELPER_DEPENDS)
 	rm -f $(WIFRIED_SB_OBJS)
 	rm -f $(WIFRIED_SB_DEPENDS)
 	rm -f WiFried-SB.dylib
 	rm -f WiFried-discoveryd.dylib
+	rm -f WiFried-discoveryd_helper.dylib
+	rm -f $(APP_OBJS)
+	rm -f $(APP_DEPENDS)
 
 %.d:	%.c
 	$(CC) -M -MG $(CFLAGS32) $< > $@
