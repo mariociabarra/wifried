@@ -18,7 +18,7 @@ endif
 HOST := $(shell cat ~/.targethost)
 EXTRA_DEPLOY_SSH := $(shell cat ~/.wifried_extra)
 
-VERSION ?= 0.3
+VERSION ?= 0.4
 
 
 all: deploy
@@ -28,12 +28,12 @@ all: deploy
 WIFRIED_DISCOVERYD_SRCS_M=wifried-discoveryd.m
 WIFRIED_DISCOVERYD_OBJS=$(WIFRIED_DISCOVERYD_SRCS_M:.m=.o)
 WIFRIED_DISCOVERYD_DEPENDS=$(WIFRIED_DISCOVERYD_SRCS_M:.m=.d)
-WIFRIED_DISCOVERYD_FRAMEWORKS=-framework Foundation -lsubstrate -framework Sharing -framework MobileWifi -framework DeviceToDeviceManager -framework SystemConfiguration
+WIFRIED_DISCOVERYD_FRAMEWORKS=-framework Foundation -lsubstrate -ljetslammed -framework Sharing -framework MobileWifi -framework DeviceToDeviceManager -framework SystemConfiguration
 
 WIFRIED_DISCOVERYD_HELPER_SRCS_M=wifried-discoveryd_helper.m
 WIFRIED_DISCOVERYD_HELPER_OBJS=$(WIFRIED_DISCOVERYD_HELPER_SRCS_M:.m=.o)
 WIFRIED_DISCOVERYD_HELPER_DEPENDS=$(WIFRIED_DISCOVERYD_HELPER_SRCS_M:.m=.d)
-WIFRIED_DISCOVERYD_HELPER_FRAMEWORKS=-framework Foundation -lsubstrate -framework SystemConfiguration
+WIFRIED_DISCOVERYD_HELPER_FRAMEWORKS=-framework Foundation -lsubstrate -ljetslammed -framework SystemConfiguration
 
 WIFRIED_SB_SRCS_M=wifried-springboard.m
 WIFRIED_SB_OBJS=$(WIFRIED_SB_SRCS_M:.m=.o)

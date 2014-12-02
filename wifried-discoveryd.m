@@ -36,14 +36,7 @@
 
 #include "substrate.h"
 #include "WiFried.h"
-
-struct WiFiManagerClient;
-typedef struct WiFiManagerClient* WiFiManagerClientRef;
-
-int WiFiManagerClientSetPower(WiFiManagerClientRef manager, bool on);
-int WiFiManagerClientGetPower(WiFiManagerClientRef manager);
-WiFiManagerClientRef WiFiManagerClientCreate(CFAllocatorRef allocator, int type);
- 
+#include "jetslammed.h"
 
 // Prevents WiFiD2D From Loading
 extern CFArrayRef CFBundleCreateBundlesFromDirectory( CFAllocatorRef allocator, CFURLRef directoryURL, CFStringRef bundleType);
@@ -78,34 +71,9 @@ CFArrayRef override_CFBundleCreateBundlesFromDirectory( CFAllocatorRef allocator
     return resultArray;
 }
 
-void resetWiFi()
-{
-    static WiFiManagerClientRef wifiMan = nil;
-    if (!wifiMan)
-        wifiMan = WiFiManagerClientCreate(kCFAllocatorDefault, 0);
-
-    if (wifiMan && WiFiManagerClientGetPower(wifiMan))
-    {
-        bool failed = false;
-        if (WiFiManagerClientSetPower(wifiMan, false) != 0)
-        {
-            NSLog(@"WiFried: error bouncing wifi off!");
-            failed = true;
-        }
-        if (WiFiManagerClientSetPower(wifiMan, true) != 0)
-        {
-            NSLog(@"WiFried: error bouncing wifi off!");
-            failed = true;
-        }
-        if (!failed)
-            NSLog(@"WiFried: Bounced WiFi");
-    }
-}
-
 static void callback(SCDynamicStoreRef store, CFArrayRef changedKeys, void* info)
 {
-    NSLog(@"WiFried: Settings changed, resetting WiFi, exiting");
-    resetWiFi();
+    NSLog(@"WiFried: Settings changed, exiting");
     exit(0);
 }
 
@@ -149,7 +117,8 @@ __attribute__((constructor)) static void initialize()
         if (mode == WIFID2D_COMPLETELY_OFF_MODE)
         {
             NSLog(@"WiFried: WiFiD2D Off Mode");
-            resetWiFi();
+            // Default is 8mb, upping memory max to 12mb due to some users having issues with hosts entries and memory addition of wifried library
+            jetslammed_updateWaterMark(12, "WiFried");
             MSHookFunction(CFBundleCreateBundlesFromDirectory, override_CFBundleCreateBundlesFromDirectory, (void*) &_CFBundleCreateBundlesFromDirectory);
         }
         else

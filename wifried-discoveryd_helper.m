@@ -35,6 +35,8 @@
 
 #include "substrate.h"
 #include "WiFried.h"
+#include "jetslammed.h"
+
 
 int getModeAndListenForChanges();
 void updateAWDLInterface();
@@ -137,6 +139,9 @@ __attribute__((constructor)) static void initialize()
     if(strcmp(getprogname(), "discoveryd_helper") == 0)
     {
         int mode = getModeAndListenForChanges();
+        // Default is 1mb, upping memory max to 3mb due to memory addition of wifried library
+        jetslammed_updateWaterMark(3, "WiFried");
+
         if (mode == WIFID2D_COMPLETELY_OFF_MODE)
             setAWDLIFUp(false);
         else

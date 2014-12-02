@@ -30,9 +30,10 @@
 
 #include "substrate.h"
 #include "WiFried.h"
-#include "SBCCButtonLikeSectionView.h"
-#include "SFAirDropDiscoveryController.h"
-#include "SBCCAirStuffSectionController.h"
+#include <SpringBoard/SBCCButtonLikeSectionView.h>
+#include <SpringBoard/SFAirDropDiscoveryController.h>
+#include <SpringBoard/SBCCAirStuffSectionController.h>
+#include <SpringBoard/SBWiFiManager.h>
 
 #define GET_IVAR(obj, prop) object_getIvar(obj, class_getInstanceVariable(object_getClass(obj), prop))
 
@@ -75,6 +76,17 @@ void saveMode(int mode)
     }
 }
 
+void resetWiFi()
+{
+    SBWiFiManager* wifiManager = [objc_getClass("SBWiFiManager") sharedInstance];
+    if ([wifiManager wiFiEnabled])
+    {
+        [wifiManager setWiFiEnabled:NO];
+        [wifiManager setWiFiEnabled:YES];
+        NSLog(@"WiFried: Bounced WiFi");
+    }
+}
+
 IMP original_SF_discoverableModeActionSheet_;
 // SFAirDropDiscoveryController discoverableModeActionSheet
 UIActionSheet* wifried_SF_discoverableModeActionSheet_(id self, SEL _cmd)
@@ -99,6 +111,7 @@ void wifried_SF_setDiscoverableMode_(id self, SEL _cmd, NSInteger mode)
         NSLog(@"WiFried: Setting WiFiD2D Off Mode");
         // This fixes UI bug
         original_SF_setDiscoverableMode_(self, _cmd, 0);
+        resetWiFi();
         saveMode(WIFID2D_COMPLETELY_OFF_MODE);
     }
     else
@@ -142,6 +155,14 @@ __attribute__((constructor)) static void initialize()
     MSHookMessageEx(NSClassFromString(@"SBCCAirStuffSectionController"), @selector(_updateAirDropControlAsEnabled:), (IMP)wifried_SBCC_updateAirDropControlAsEnabled_, (IMP *)&original_SBCC_updateAirDropControlAsEnabled_);
     MSHookMessageEx(NSClassFromString(@"SBCCAirStuffSectionController"), @selector(discoveryController:actionSheetWillDismiss:), (IMP)wifried_SBCC_discoveryController_actionSheetWillDismiss_, (IMP *)&original_SBCC_discoveryController_actionSheetWillDismiss_);
 
+    // First time, reset wifi as it clears some issues kernel related to AWDL
+     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 
+    if (![defaults boolForKey: @"WiFried"])
+    {
+        [defaults setBool: true forKey: @"WiFried"];
+        [defaults synchronize];
+        resetWiFi();
+    }
 
 }
