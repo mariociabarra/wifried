@@ -5,7 +5,7 @@ Name: WiFried (AWDL Disable)
 Version: $1
 Architecture: iphoneos-arm
 Section: Utilities
-Depends: firmware (>= 8), mobilesubstrate
+Depends: firmware (>= 8), mobilesubstrate, jetslammed
 Maintainer: Mario Ciabarra <http://twitter.com/@mariociabarra>
 Author: Mario Ciabarra <http://twitter.com/@mariociabarra>
 Sponsor: ModMyi.com <http://modmyi.com/forums/index.php?styleid=31>
